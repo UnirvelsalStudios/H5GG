@@ -1,0 +1,31 @@
+name: Build H5GG IPA
+
+on: [workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: List files (debug)
+        run: ls -la
+      
+      - name: Build H5GG IPA
+        run: |
+          cd H5GG
+          xcodebuild -project H5GG.xcodeproj -scheme H5GG -configuration Release -archivePath build/H5GG.xcarchive archive
+          xcodebuild -exportArchive -archivePath build/H5GG.xcarchive -exportPath build/ -exportOptionsPlist exportOptions.plist 2>/dev/null || true
+          # Si falla, buscar el .app y empaquetar manualmente
+          find build -name "*.app" -type d | head -1 | while read app; do
+            mkdir -p Payload
+            cp -r "$app" Payload/
+            zip -r H5GG.ipa Payload/
+          done
+      
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: H5GG.ipa
+          path: H5GG.ipa
